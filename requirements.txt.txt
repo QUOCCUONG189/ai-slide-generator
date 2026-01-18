@@ -1,5 +1,0 @@
-streamlit
-python-pptx
-google-generativeai
-requests
-python-dotenv
