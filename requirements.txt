@@ -3,3 +3,6 @@ python-pptx
 google-generativeai
 requests
 python-dotenv
+python-docx
+
+
