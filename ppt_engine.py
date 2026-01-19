@@ -1,48 +1,25 @@
 from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.dml.color import RGBColor
+from pptx.util import Inches
 
-def create_ppt(data, image_paths):
+def create_ppt(slide_data, output_path="slides.pptx"):
     prs = Presentation()
 
-    primary = RGBColor.from_string(data["theme"]["primary"].replace("#",""))
-    secondary = RGBColor.from_string(data["theme"]["secondary"].replace("#",""))
-    accent = RGBColor.from_string(data["theme"]["accent"].replace("#",""))
+    # Slide tiêu đề
+    title_slide = prs.slides.add_slide(prs.slide_layouts[0])
+    title_slide.shapes.title.text = slide_data["title"]
 
-    for i, slide_data in enumerate(data["slides"]):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
+    for slide in slide_data["slides"]:
+        s = prs.slides.add_slide(prs.slide_layouts[1])
+        s.shapes.title.text = slide["title"]
 
-        bg = slide.background
-        bg.fill.solid()
-        bg.fill.fore_color.rgb = primary
+        body = s.shapes.placeholders[1]
+        tf = body.text_frame
+        tf.clear()
 
-        title_box = slide.shapes.add_textbox(Inches(0.7), Inches(0.5), Inches(8), Inches(1))
-        title_tf = title_box.text_frame
-        title_tf.text = slide_data["title"]
-        title_tf.paragraphs[0].font.size = Pt(36)
-        title_tf.paragraphs[0].font.bold = True
-        title_tf.paragraphs[0].font.color.rgb = secondary
-
-        content_box = slide.shapes.add_textbox(Inches(0.7), Inches(1.7), Inches(5), Inches(4))
-        tf = content_box.text_frame
-        tf.text = slide_data["key_message"]
-        tf.paragraphs[0].font.size = Pt(20)
-        tf.paragraphs[0].font.color.rgb = accent
-
-        for bullet in slide_data["bullets"]:
+        for bullet in slide["bullets"]:
             p = tf.add_paragraph()
             p.text = bullet
             p.level = 1
-            p.font.size = Pt(16)
-            p.font.color.rgb = secondary
 
-        if image_paths[i]:
-            slide.shapes.add_picture(
-                image_paths[i],
-                Inches(6),
-                Inches(1.7),
-                width=Inches(3)
-            )
-
-    prs.save("generated_slides.pptx")
+    prs.save(output_path)
+    return output_path
