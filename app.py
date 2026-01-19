@@ -3,68 +3,38 @@ from gemini_engine import generate_slide_data
 from ppt_engine import create_ppt
 from docx_reader import read_docx
 
-st.set_page_config(
-    page_title="AI Slide Generator",
-    layout="centered"
-)
+st.set_page_config("AI Slide Generator PRO", layout="centered")
 
-st.title("🎨 AI Slide Generator (Gemini)")
+st.title("🚀 AI Slide Generator PRO")
 
-# ====== TÙY CHỌN STYLE ======
 style = st.selectbox(
-    "Phong cách slide",
-    [
-        "Thuyết trình học thuật",
-        "Startup Pitch Deck",
-        "Marketing",
-        "Minimal hiện đại"
-    ]
+    "Phong cách",
+    ["Học thuật", "Startup Pitch", "Marketing", "Minimal"]
 )
 
-color = st.text_input(
-    "Màu chủ đạo (không bắt buộc)",
-    placeholder="Ví dụ: xanh dương, tím gradient"
-)
+color = st.text_input("Màu chủ đạo", "xanh dương gradient")
+slide_count = st.slider("Số slide", 5, 15, 8)
 
-# ====== NHẬP NỘI DUNG ======
-st.subheader("📥 Nhập nội dung")
+text = st.text_area("Nhập nội dung")
 
-text_input = st.text_area(
-    "Nhập nội dung / ý tưởng",
-    height=200
-)
+file = st.file_uploader("Hoặc upload Word", type=["docx"])
 
-uploaded_file = st.file_uploader(
-    "Hoặc upload file Word (.docx)",
-    type=["docx"]
-)
+content = read_docx(file) if file else text
 
-# ====== XÁC ĐỊNH NGUỒN NỘI DUNG ======
-if uploaded_file is not None:
-    content_source = read_docx(uploaded_file)
-else:
-    content_source = text_input
-
-# ====== BUTTON TẠO SLIDE ======
-if st.button("🚀 Tạo PowerPoint"):
-    if not content_source.strip():
-        st.warning("❗ Vui lòng nhập nội dung hoặc upload file Word")
+if st.button("✨ Tạo PowerPoint"):
+    if not content.strip():
+        st.warning("Chưa có nội dung")
     else:
-        with st.spinner("🤖 Gemini đang tạo nội dung..."):
-            slide_data = generate_slide_data(
-                topic=content_source,
-                style=style,
-                color_override=color if color else None
+        with st.spinner("Gemini đang làm việc..."):
+            data = generate_slide_data(
+                content, style, slide_count, color
             )
+            ppt = create_ppt(data)
 
-            ppt_path = create_ppt(slide_data)
-
-        st.success("✅ Tạo slide thành công!")
-
-        with open(ppt_path, "rb") as f:
+        with open(ppt, "rb") as f:
+            st.success("Hoàn tất!")
             st.download_button(
-                label="⬇️ Tải PowerPoint",
-                data=f,
-                file_name="ai_slides.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                "⬇️ Tải PPT",
+                f,
+                file_name="AI_Slides_PRO.pptx"
             )
