@@ -1,67 +1,44 @@
-import google.generativeai as genai
 import os
+import google.generativeai as genai
 import json
-from dotenv import load_dotenv
-
-load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-SYSTEM_PROMPT = """
-Bạn là chuyên gia thiết kế slide PowerPoint.
-
-YÊU CẦU BẮT BUỘC:
-- Viết TOÀN BỘ bằng tiếng Việt
-- Nội dung ngắn gọn, dễ thuyết trình
-- Chia 8–10 slide
-- Trả về JSON THUẦN, KHÔNG giải thích
-
-ĐỊNH DẠNG JSON:
-{
-  "theme": {
-    "primary": "#0B3C5D",
-    "secondary": "#FFFFFF",
-    "accent": "#F4B41A"
-  },
-  "slides": [
-    {
-      "title": "",
-      "key_message": "",
-      "bullets": [],
-      "image_query": ""
-    }
-  ]
-}
-"""
 
 def generate_slide_data(topic, style, color_override=None):
-    # Giới hạn độ dài để tránh InvalidArgument
-    topic = topic[:8000]
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+    model = genai.GenerativeModel("gemini-1.0-pro")
 
     prompt = f"""
-{SYSTEM_PROMPT}
+Bạn là AI chuyên tạo slide PowerPoint CHUYÊN NGHIỆP.
 
-MỤC ĐÍCH: {style}
+YÊU CẦU:
+- Ngôn ngữ: TIẾNG VIỆT
+- Phong cách: {style}
+- Màu chủ đạo: {color_override if color_override else "tự chọn theo xu hướng mới"}
+- Trả về JSON hợp lệ, KHÔNG markdown, KHÔNG giải thích.
 
-NỘI DUNG ĐẦU VÀO:
+FORMAT:
+{{
+  "title": "...",
+  "slides": [
+    {{
+      "title": "...",
+      "bullets": ["...", "...", "..."],
+      "image_query": "từ khóa ảnh"
+    }}
+  ]
+}}
+
+CHỦ ĐỀ:
 {topic}
-
-Nếu người dùng cung cấp màu chủ đạo thì ưu tiên.
 """
 
-    model = genai.GenerativeModel("models/gemini-1.5-flash")
-
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "temperature": 0.6,
-            "max_output_tokens": 2048
-        }
-    )
+    response = model.generate_content(prompt)
 
     text = response.text.strip()
 
-    # Phòng Gemini trả thêm ```json
-    if text.startswith("```"):
-        text = text.replace("```json", "").replace("```", "").strip()
+    # Cắt JSON an toàn
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    json_text = text[start:end]
 
-    return json.loads(text)
+    return json.loads(json_text)
