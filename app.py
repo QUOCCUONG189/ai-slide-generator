@@ -1,87 +1,51 @@
 import streamlit as st
+from gemini_engine import generate_slide_data
+from ppt_engine import create_ppt
+from docx import Document
 import os
 
-from gemini_engine import generate_slide_data
-from image_fetcher import fetch_image
-from ppt_engine import create_ppt
-from docx_reader import read_docx
+st.set_page_config(page_title="AI Slide Generator", layout="centered")
 
-# =====================
-# CONFIG
-# =====================
-st.set_page_config(page_title="AI PPT Generator", layout="centered")
-st.title("🎯 AI Tạo Slide Tự Động (Text + Word)")
-
-# =====================
-# SESSION STATE
-# =====================
-if "ppt_ready" not in st.session_state:
-    st.session_state.ppt_ready = False
-
-# =====================
-# INPUT UI
-# =====================
-topic = st.text_area(
-    "Nhập nội dung (có thể bỏ trống nếu upload Word)",
-    height=150
-)
-
-uploaded_file = st.file_uploader(
-    "Hoặc upload file Word (.docx)",
-    type=["docx"]
-)
+st.title("🎨 AI Slide Generator (Gemini)")
 
 style = st.selectbox(
-    "Mục đích",
-    ["Ôn thi", "Thuyết trình", "Báo cáo"]
+    "Phong cách slide",
+    ["Thuyết trình học thuật", "Startup Pitch Deck", "Marketing", "Minimal hiện đại"]
 )
 
-color = st.text_input(
-    "Màu chủ đạo (hex, optional)",
-    placeholder="#0B3C5D"
-)
+color = st.text_input("Màu chủ đạo (tuỳ chọn)", placeholder="Ví dụ: xanh dương, tím gradient")
 
-# =====================
-# MAIN ACTION
-# =====================
-if st.button("🚀 Tạo PowerPoint"):
-    with st.spinner("Đang xử lý bằng AI..."):
-        # 1. Xác định nguồn nội dung
-        if uploaded_file is not None:
-            content_source = read_docx(uploaded_file)
-        elif topic.strip():
-            content_source = topic
-        else:
-            st.warning("⚠️ Hãy nhập nội dung hoặc upload file Word")
-            st.stop()
+st.subheader("📥 Nhập nội dung")
 
-        # 2. Gọi Gemini
-        data = generate_slide_data(
-            topic=content_source,
-            style=style,
-            color_override=color if color else None
-        )
+content_source = ""
 
-        # 3. Lấy ảnh
-        image_paths = []
-        for idx, slide in enumerate(data["slides"]):
-            path = fetch_image(slide["image_query"], idx)
-            image_paths.append(path)
+text_input = st.text_area("Nhập nội dung / ý tưởng", height=200)
 
-        # 4. Tạo PPT
-        create_ppt(data, image_paths)
+uploaded_file = st.file_uploader("Hoặc upload file Word (.docx)", type=["docx"])
 
-        st.session_state.ppt_ready = True
+if uploaded_file:
+    doc = Document(uploaded_file)
+    content_source = "\n".join([p.text for p in doc.paragraphs])
+else:
+    content_source = text_input
 
-# =====================
-# DOWNLOAD SECTION
-# =====================
-if st.session_state.ppt_ready and os.path.exists("generated_slides.pptx"):
-    st.success("✅ Tạo slide thành công!")
-    with open("generated_slides.pptx", "rb") as f:
-        st.download_button(
-            label="⬇️ Tải PowerPoint",
-            data=f,
-            file_name="AI_Slides.pptx",
-            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        )
+if st.button("🚀 Tạo slide"):
+    if not content_source.strip():
+        st.warning("Chưa có nội dung!")
+    else:
+        with st.spinner("Gemini đang tạo nội dung..."):
+            data = generate_slide_data(
+                topic=content_source,
+                style=style,
+                color_override=color if color else None
+            )
+
+            ppt_path = create_ppt(data)
+
+        with open(ppt_path, "rb") as f:
+            st.success("Hoàn tất!")
+            st.download_button(
+                "⬇️ Tải PowerPoint",
+                f,
+                file_name="ai_slides.pptx"
+            )
