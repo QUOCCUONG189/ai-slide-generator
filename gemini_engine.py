@@ -1,20 +1,19 @@
 import os
-import google.generativeai as genai
 import json
+from google import genai
 
 def generate_slide_data(topic, style, color_override=None):
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
-    model = genai.GenerativeModel("gemini-1.0-pro")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     prompt = f"""
-Bạn là AI chuyên tạo slide PowerPoint CHUYÊN NGHIỆP.
+Bạn là AI chuyên tạo nội dung PowerPoint CHUYÊN NGHIỆP.
 
 YÊU CẦU:
 - Ngôn ngữ: TIẾNG VIỆT
 - Phong cách: {style}
 - Màu chủ đạo: {color_override if color_override else "tự chọn theo xu hướng mới"}
-- Trả về JSON hợp lệ, KHÔNG markdown, KHÔNG giải thích.
+- Chỉ trả về JSON hợp lệ
+- Không markdown, không giải thích
 
 FORMAT:
 {{
@@ -32,11 +31,13 @@ CHỦ ĐỀ:
 {topic}
 """
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model="gemini-1.5-flash",
+        contents=prompt
+    )
 
     text = response.text.strip()
 
-    # Cắt JSON an toàn
     start = text.find("{")
     end = text.rfind("}") + 1
     json_text = text[start:end]
