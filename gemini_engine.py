@@ -7,14 +7,15 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 SYSTEM_PROMPT = """
-You are a presentation architect.
+Bạn là chuyên gia thiết kế slide PowerPoint.
 
-Rules:
-- Write ALL content in VIETNAMESE
-- Output STRICT JSON ONLY
-- No explanations
+YÊU CẦU BẮT BUỘC:
+- Viết TOÀN BỘ bằng tiếng Việt
+- Nội dung ngắn gọn, dễ thuyết trình
+- Chia 8–10 slide
+- Trả về JSON THUẦN, KHÔNG giải thích
 
-JSON format:
+ĐỊNH DẠNG JSON:
 {
   "theme": {
     "primary": "#0B3C5D",
@@ -33,20 +34,34 @@ JSON format:
 """
 
 def generate_slide_data(topic, style, color_override=None):
-    prompt = f"""
-Chủ đề: {topic}
-Mục đích: {style}
+    # Giới hạn độ dài để tránh InvalidArgument
+    topic = topic[:8000]
 
-Nếu có màu chủ đạo người dùng yêu cầu thì ưu tiên.
-Tạo 8–10 slide.
+    prompt = f"""
+{SYSTEM_PROMPT}
+
+MỤC ĐÍCH: {style}
+
+NỘI DUNG ĐẦU VÀO:
+{topic}
+
+Nếu người dùng cung cấp màu chủ đạo thì ưu tiên.
 """
 
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-pro",
-        system_instruction=SYSTEM_PROMPT
+    model = genai.GenerativeModel("models/gemini-1.5-flash")
+
+    response = model.generate_content(
+        prompt,
+        generation_config={
+            "temperature": 0.6,
+            "max_output_tokens": 2048
+        }
     )
 
-    response = model.generate_content(prompt)
     text = response.text.strip()
+
+    # Phòng Gemini trả thêm ```json
+    if text.startswith("```"):
+        text = text.replace("```json", "").replace("```", "").strip()
 
     return json.loads(text)
