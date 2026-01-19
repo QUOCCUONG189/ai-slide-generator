@@ -1,15 +1,13 @@
 from docx import Document
 
-def read_docx(file) -> str:
-    """
-    Đọc file .docx và trả về toàn bộ nội dung dạng text
-    """
+def read_docx(file):
     doc = Document(file)
-    paragraphs = []
+    blocks = []
 
     for p in doc.paragraphs:
-        text = p.text.strip()
-        if text:
-            paragraphs.append(text)
+        if p.style.name.startswith("Heading"):
+            blocks.append(f"\n{p.text}\n")
+        else:
+            blocks.append(p.text)
 
-    return "\n".join(paragraphs)
+    return "\n".join(blocks)
